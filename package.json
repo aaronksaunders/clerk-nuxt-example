@@ -1,0 +1,26 @@
+{
+  "name": "clerk-nuxt-example",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@clerk/backend": "^2.14.0",
+    "@clerk/nuxt": "^1.0.0",
+    "@nuxtjs/color-mode": "^3.3.0",
+    "@nuxtjs/tailwindcss": "^6.8.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "nuxt": "^3.7.4",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^2.6.3",
+    "typescript": "^5.2.2"
+  }
+}
