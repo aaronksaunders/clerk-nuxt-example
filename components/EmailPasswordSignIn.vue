@@ -69,8 +69,11 @@ import Button from '~/components/ui/Button.vue';
  * Manages a multi-step authentication flow: email/password submission and verification code entry.
  */
 
+import { useClerk } from '@clerk/nuxt/composables';
+import { useAuth } from '@clerk/nuxt/composables';
 const { signIn, isLoaded } = useSignIn();
-const { setActive } = useAuth();
+const { setActive } = useClerk();
+const { isSignedIn } = useAuth();
 
 /**
  * Reactive state for the user's email address.
@@ -116,6 +119,12 @@ const message = ref("");
  */
 const handleSignIn = async () => {
   if (!isLoaded.value) return;
+
+  if (isSignedIn.value) {
+    console.log("User is already signed in. Redirecting to home page.");
+    navigateTo("/");
+    return;
+  }
 
   isLoading.value = true;
   message.value = "";

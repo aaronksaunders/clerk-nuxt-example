@@ -1,3 +1,7 @@
+import { watch } from "vue"; // Import watch
+import { useAuth } from "@clerk/nuxt/composables"; // Explicitly import useAuth
+import { defineNuxtRouteMiddleware, navigateTo } from "nuxt/app"; // Explicitly import these as well
+
 /**
  * Global Nuxt route middleware for authentication and authorization using Clerk.
  * This middleware checks the user's authentication status and role,
@@ -8,7 +12,25 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
    * Retrieves the current user's ID and session claims from Clerk.
    * @type { import('@clerk/nuxt').UseAuthReturn }
    */
-  const { userId, sessionClaims } = await useAuth();
+  const { userId, sessionClaims, isLoaded } = useAuth(); // Destructure isLoaded
+
+  // Wait for Clerk to be fully loaded before proceeding
+  await new Promise((resolve) => {
+    let unwatch: (() => void) | null = null;
+    unwatch = watch(
+      isLoaded,
+      (newIsLoaded) => {
+        console.log("Middleware: Clerk isLoaded changed to:", newIsLoaded);
+        if (newIsLoaded) {
+          if (unwatch) {
+            unwatch();
+          }
+          resolve(true);
+        }
+      },
+      { immediate: true }
+    );
+  });
 
   /**
    * An array of public routes that do not require authentication.

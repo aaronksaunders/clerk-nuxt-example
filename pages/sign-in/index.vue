@@ -41,6 +41,10 @@ import { ref } from 'vue';
 import Button from '~/components/ui/Button.vue';
 import EmailPasswordSignIn from '~/components/EmailPasswordSignIn.vue';
 
+definePageMeta({
+  middleware: ['redirect-if-authenticated']
+});
+
 /**
  * Reactive state to control the currently active sign-in method.
  * Can be 'magicLink' or 'emailPassword'.
