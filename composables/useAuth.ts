@@ -1,51 +1,84 @@
-import { ref, watch, readonly } from 'vue';
+import { ref, watch, readonly, computed } from 'vue';
 
 /**
- * Custom composable to get user role from JWT template
- * @param {string} templateName - The name of the JWT template
- * @returns {object} Object containing role, loading state, and error
+ * Custom composable to get user organization memberships and roles from JWT template
+ * @returns {object} Object containing organizations, loading state, and error, along with helper functions
  */
-export function useUserRole(templateName: string) {
+export function useUserOrganizationsAndRoles() {
   const { session, isLoaded } = useSession();
-  const role = ref<string | undefined>(undefined);
+  const organizations = ref<any[]>([]); // To store parsed organization data
   const loading = ref(true);
   const error = ref<string | null>(null);
 
-  const fetchRole = async () => {
-    console.log("useUserRole: fetchRole starting for template:", templateName); // New log
+  const fetchOrganizationsAndRoles = async () => {
+    console.log("useUserOrganizationsAndRoles: fetchOrganizationsAndRoles starting.");
     try {
       loading.value = true;
       error.value = null;
       if (!session.value) {
-        console.log("useUserRole: Session not available."); // New log
+        console.log("useUserOrganizationsAndRoles: Session not available.");
         throw new Error("Session not available.");
       }
-      const token = await session.value.getToken({ template: templateName });
-      console.log("useUserRole: Token obtained:", token ? "Yes" : "No"); // New log
+
+      // Get the JWT token with the 'organization_roles' template
+      // This template must be configured in the Clerk Dashboard to include organization information.
+      const token = await session.value.getToken({ template: 'organization_roles' });
+      console.log("useUserOrganizationsAndRoles: Token obtained:", token ? "Yes" : "No");
+
       if (token) {
         const decoded = decodeJWTToken(token);
-        role.value = decoded?.role;
-        console.log("useUserRole: Role decoded:", decoded?.role); // New log
+        // Assuming the JWT template includes an 'organizations' claim
+        // Example structure: { organizations: [{ id: 'org_xxxx', name: 'Host Org', role: 'admin', type: 'host' }] }
+        organizations.value = decoded?.organizations || [];
+        console.log("useUserOrganizationsAndRoles: Organizations decoded:", organizations.value);
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to get role";
-      console.error("useUserRole: Error fetching role:", err); // Enhanced log
+      error.value = err instanceof Error ? err.message : "Failed to get organizations and roles";
+      console.error("useUserOrganizationsAndRoles: Error fetching organizations and roles:", err);
     } finally {
       loading.value = false;
     }
   };
 
   watch(isLoaded, (loaded) => {
-    console.log("useUserRole: isLoaded changed:", loaded); // New log
+    console.log("useUserOrganizationsAndRoles: isLoaded changed:", loaded);
     if (loaded) {
-      fetchRole();
+      fetchOrganizationsAndRoles();
     }
   }, { immediate: true });
 
+  // Helper functions
+  const isHostAdmin = computed(() =>
+    organizations.value.some(org => org.type === 'host' && org.role === 'admin')
+  );
+
+  const isAttendeeAdmin = computed(() =>
+    organizations.value.some(org => org.type === 'attendee' && org.role === 'admin')
+  );
+
+  const isHostMember = computed(() =>
+    organizations.value.some(org => org.type === 'host' && org.role === 'member')
+  );
+
+  const isAttendeeMember = computed(() =>
+    organizations.value.some(org => org.type === 'attendee' && org.role === 'member')
+  );
+
+  const isHost = computed(() => isHostAdmin.value || isHostMember.value);
+  const isAttendee = computed(() => isAttendeeAdmin.value || isAttendeeMember.value);
+  const isBothHostAndAttendee = computed(() => isHost.value && isAttendee.value);
+
   return {
-    role: readonly(role),
+    organizations: readonly(organizations),
     loading: readonly(loading),
     error: readonly(error),
+    isHostAdmin,
+    isAttendeeAdmin,
+    isHostMember,
+    isAttendeeMember,
+    isHost,
+    isAttendee,
+    isBothHostAndAttendee,
   };
 }
 
@@ -66,7 +99,7 @@ function decodeJWTToken(token: string): any {
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error("useUserRole: Error decoding JWT token:", error);
+    console.error("decodeJWTToken: Error decoding JWT token:", error);
     return null;
   }
 }
